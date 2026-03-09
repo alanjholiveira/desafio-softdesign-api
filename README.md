@@ -168,6 +168,19 @@ POST /v1/votes
 
 ---
 
+## 🚦 Fluxo Completo de Operação
+
+Para testar o fluxo completo da aplicação (Cadastro → Validação CPF → Voto → Resultado), siga esta ordem:
+
+1. **Cadastre uma Pauta** (`POST /v1/polls`). Guarde o `id` retornado.
+2. **Abra uma Sessão** (`POST /v1/sessions` enviando o `pollId`). Guarde o `id` da sessão aberta.
+3. **Cadastre o Associado** (`POST /v1/associates`). Utilize o CPF válido para mock (`27603748666`) para que a simulação de serviço passe o associado como `ABLE_TO_VOTE`.
+4. **Registre o Voto** (`POST /v1/votes`). Envie o ID do associado, da sessão e o voto (`YES` ou `NO`).
+5. **Aguarde a Sessão Expirar**. Após 1 minuto (por padrão), o job interno (ShedLock cron) irá processar a sessão.
+6. **Consulte o Resultado**. O resultado será automaticamente disparado via mensageria (RabbitMQ, fila `notificacao.pauta.queue`), finalizando o fluxo assíncrono.
+
+---
+
 ## 🧪 Rodar os testes
 
 Os testes de integração utilizam **Testcontainers** — o Docker precisa estar em execução.
