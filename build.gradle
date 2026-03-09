@@ -52,6 +52,10 @@ dependencies {
 	testImplementation 'org.testcontainers:testcontainers-postgresql'
 	testImplementation 'org.testcontainers:testcontainers-rabbitmq'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+
+	implementation 'net.javacrumbs.shedlock:shedlock-spring:7.6.0'
+	implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.6.0'
 }
 
 dependencyManagement {

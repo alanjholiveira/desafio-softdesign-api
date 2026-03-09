@@ -14,7 +14,7 @@ spring:
 event:
   cron: 0 30 * * * *
   rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq_desafio_api}
+    host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     password: ${RABBITMQ_PASS:guest}
     username: ${RABBITMQ_USER:guest}
