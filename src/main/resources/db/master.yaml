@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/20260308202400_CREATE_TABLE_SCHEDLOCK_schema.sql
+  - include:
+      file: db/changelog/20260308213400_CREATE_TABLE_ASSOCIATE_schema.sql
+  - include:
+      file: db/changelog/20260308213800_CREATE_TABLE_POLL_schema.sql
+  - include:
+      file: db/changelog/20260308214200_CREATE_TABLE_SESSION_schema.sql
+  - include:
+      file: db/changelog/20260308221500_CREATE_TABLE_VOTO_schema.sql
