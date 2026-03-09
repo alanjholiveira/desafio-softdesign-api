@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
     // 404 – Not Found
     // -----------------------------------------------------------------------
 
-    @ExceptionHandler({ PollNotFoundException.class, SessionNotFoundException.class })
+    @ExceptionHandler({ PollNotFoundException.class, SessionNotFoundException.class, AssociateNotFoundException.class })
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex) {
         log.warn("Resource not found: {}", ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
     // -----------------------------------------------------------------------
 
     @ExceptionHandler({ VotingClosedException.class, SessionNotCountVoteException.class,
-            AssociateUnableToVoteException.class, AssociateNotFoundException.class })
+            AssociateUnableToVoteException.class })
     public ResponseEntity<ErrorResponse> handleUnprocessable(RuntimeException ex) {
         log.warn("Unprocessable request: {}", ex.getMessage());
         return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, "Unprocessable Entity", ex.getMessage());

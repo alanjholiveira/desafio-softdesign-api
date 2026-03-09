@@ -53,9 +53,11 @@ dependencies {
 	testImplementation 'org.testcontainers:testcontainers-rabbitmq'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-
 	implementation 'net.javacrumbs.shedlock:shedlock-spring:7.6.0'
 	implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.6.0'
+
+	testImplementation 'io.rest-assured:spring-mock-mvc:6.0.0'
+	testImplementation 'org.junit.jupiter:junit-jupiter:6.1.0-M1'
 }
 
 dependencyManagement {
