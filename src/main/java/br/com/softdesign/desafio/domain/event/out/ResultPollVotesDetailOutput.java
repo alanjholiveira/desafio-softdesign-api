@@ -17,7 +17,7 @@ import java.util.Map;
 @NoArgsConstructor
 public class ResultPollVotesDetailOutput {
 
-    @JsonProperty("paulta")
+    @JsonProperty("pauta")
     private String poll;
 
     @JsonProperty("quantidadeVoto")

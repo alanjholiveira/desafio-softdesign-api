@@ -28,6 +28,22 @@ services:
     volumes:
       - DESAFIO_SOFTDESIGN_DATA_RABBITMQ:/var/lib/rabbitmq/mnesia/
 
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: app_api
+    ports:
+      - "8080:8080"
+    environment:
+      DATASOURCE_URL: jdbc:postgresql://db_desafio_api:5432/desafio_api
+      RABBITMQ_HOST: rabbitmq_desafio_api
+    networks:
+      - DESAFIO_SOFTDESIGN_NETWORK
+    depends_on:
+      - db
+      - rabbitmq
+
 volumes:
   DESAFIO_SOFTDESIGN_DATA_DB:
   DESAFIO_SOFTDESIGN_DATA_RABBITMQ:
