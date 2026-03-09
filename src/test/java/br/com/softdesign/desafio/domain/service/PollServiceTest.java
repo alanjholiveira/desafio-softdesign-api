@@ -1,27 +1,22 @@
 package br.com.softdesign.desafio.domain.service;
 
-import br.com.softdesign.desafio.builder.entity.PollBuilder;
 import br.com.softdesign.desafio.domain.entity.Poll;
-import br.com.softdesign.desafio.infrastructure.config.testcontainers.AbstractIntegrationTest;
 import br.com.softdesign.desafio.infrastructure.repository.PollRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.text.ParseException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
-@ExtendWith(SpringExtension.class)
-class PollServiceTest extends AbstractIntegrationTest {
+@ExtendWith(MockitoExtension.class)
+class PollServiceTest {
 
     @InjectMocks
     private PollService service;
@@ -29,29 +24,36 @@ class PollServiceTest extends AbstractIntegrationTest {
     @Mock
     private PollRepository repository;
 
-    @Autowired
-    private PollBuilder builder;
+    private Poll buildPoll() {
+        return Poll.builder()
+                .id(UUID.randomUUID())
+                .name("Teste Pauta")
+                .description("Descrição da Pauta")
+                .createdAt(LocalDateTime.now())
+                .lastUpdate(LocalDateTime.now())
+                .build();
+    }
 
     @Test
-    void when_getAll_returns_success() throws ParseException {
-        Poll pollBuilder = builder.construirEntidade();
-        when(repository.findAll()).thenReturn(List.of(pollBuilder));
+    void when_getAll_returns_success() {
+        Poll pollBuild = buildPoll();
+        when(repository.findAll()).thenReturn(List.of(pollBuild));
 
         List<Poll> response = service.findAll();
 
         assertNotNull(response);
-        assertEquals(List.of(pollBuilder), response);
+        assertEquals(List.of(pollBuild), response);
     }
 
     @Test
-    void when_save_return_success() throws ParseException {
-        Poll pollBuilder = builder.construirEntidade();
-        when(repository.save(pollBuilder)).thenReturn(pollBuilder);
+    void when_save_return_success() {
+        Poll pollBuild = buildPoll();
+        when(repository.save(pollBuild)).thenReturn(pollBuild);
 
-        Poll response = service.save(pollBuilder);
+        Poll response = service.save(pollBuild);
 
         assertNotNull(response);
-        assertEquals(pollBuilder, response);
+        assertEquals(pollBuild, response);
     }
 
 }

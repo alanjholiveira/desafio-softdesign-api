@@ -1,10 +1,8 @@
 package br.com.softdesign.desafio.domain.service;
 
-import br.com.softdesign.desafio.builder.entity.AssociateBuilder;
 import br.com.softdesign.desafio.domain.entity.Associate;
 import br.com.softdesign.desafio.infrastructure.client.AssociateStatusClient;
 import br.com.softdesign.desafio.infrastructure.client.response.StatusResponse;
-import br.com.softdesign.desafio.infrastructure.config.testcontainers.AbstractIntegrationTest;
 import br.com.softdesign.desafio.infrastructure.enums.AssociateStatus;
 import br.com.softdesign.desafio.infrastructure.exception.AssociateNotFoundException;
 import br.com.softdesign.desafio.infrastructure.repository.AssociateRepository;
@@ -13,19 +11,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.text.ParseException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
-@ExtendWith(SpringExtension.class)
-class AssociateServiceTest extends AbstractIntegrationTest {
+@ExtendWith(MockitoExtension.class)
+class AssociateServiceTest {
 
     @InjectMocks
     private AssociateService service;
@@ -36,12 +32,20 @@ class AssociateServiceTest extends AbstractIntegrationTest {
     @Mock
     private AssociateStatusClient statusClient;
 
-    @Autowired
-    private AssociateBuilder associateBuilder;
+    private Associate buildAssociate() {
+        return Associate.builder()
+                .id(UUID.randomUUID())
+                .name("Nome Associado")
+                .taxId("58382140076")
+                .status(AssociateStatus.ABLE_TO_VOTE)
+                .createdAt(LocalDateTime.now())
+                .lastUpdate(LocalDateTime.now())
+                .build();
+    }
 
     @Test
-    void when_getAll_returns_success() throws ParseException {
-        Associate associateBuild = associateBuilder.construirEntidade();
+    void when_getAll_returns_success() {
+        Associate associateBuild = buildAssociate();
         when(repository.findAll()).thenReturn(List.of(associateBuild));
 
         List<Associate> associate = service.findAll();
@@ -51,8 +55,8 @@ class AssociateServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void when_save_return_success() throws ParseException {
-        Associate associateBuild = associateBuilder.construirEntidade();
+    void when_save_return_success() {
+        Associate associateBuild = buildAssociate();
         when(repository.save(associateBuild)).thenReturn(associateBuild);
         when(statusClient.getStatus(associateBuild.getTaxId()))
                 .thenReturn(StatusResponse.builder().status(AssociateStatus.ABLE_TO_VOTE).build());
@@ -64,16 +68,12 @@ class AssociateServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void when_save_return_status_not_found() throws ParseException {
-        Associate associateBuild = associateBuilder.construirEntidade();
-        when(repository.save(associateBuild)).thenReturn(associateBuild);
+    void when_save_return_status_not_found() {
+        Associate associateBuild = buildAssociate();
         when(statusClient.getStatus(associateBuild.getTaxId()))
                 .thenThrow(FeignException.class);
 
-        assertThrows(AssociateNotFoundException.class, () -> {
-            service.save(associateBuild);
-        });
-
+        assertThrows(AssociateNotFoundException.class, () -> service.save(associateBuild));
     }
 
 }

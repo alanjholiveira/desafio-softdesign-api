@@ -1,35 +1,28 @@
 package br.com.softdesign.desafio.application.rest.v1;
 
-import br.com.softdesign.desafio.application.mapper.AssociateMapper;
 import br.com.softdesign.desafio.application.rest.v1.request.AssociateRequest;
-import br.com.softdesign.desafio.builder.entity.AssociateBuilder;
 import br.com.softdesign.desafio.domain.entity.Associate;
 import br.com.softdesign.desafio.domain.service.AssociateService;
-import br.com.softdesign.desafio.infrastructure.client.AssociateStatusClient;
-import br.com.softdesign.desafio.infrastructure.client.response.StatusResponse;
 import br.com.softdesign.desafio.infrastructure.config.testcontainers.AbstractIntegrationTest;
 import br.com.softdesign.desafio.infrastructure.enums.AssociateStatus;
 import br.com.softdesign.desafio.infrastructure.util.TestUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.io.IOException;
-import java.text.ParseException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.standaloneSetup;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest
 class AssociateRestApiTest extends AbstractIntegrationTest {
 
     private static final String URL = "/v1/associates";
@@ -37,24 +30,28 @@ class AssociateRestApiTest extends AbstractIntegrationTest {
     @Autowired
     private AssociateRestApi associateRestApi;
 
-    @Autowired
-    private AssociateBuilder builder;
-
-    @Mock
+    @MockitoBean
     private AssociateService service;
-
-    @Mock
-    private AssociateStatusClient statusClient;
 
     @BeforeEach
     public void setup() {
         standaloneSetup(this.associateRestApi);
     }
 
-    @Test
-    void when_getAll_returns_success() throws ParseException {
-        Associate associate = builder.construirEntidade();
+    private Associate buildAssociate() {
+        return Associate.builder()
+                .id(UUID.randomUUID())
+                .name("Nome Associado")
+                .taxId("58382140076")
+                .status(AssociateStatus.ABLE_TO_VOTE)
+                .createdAt(LocalDateTime.now())
+                .lastUpdate(LocalDateTime.now())
+                .build();
+    }
 
+    @Test
+    void when_getAll_returns_success() {
+        Associate associate = buildAssociate();
         when(service.findAll()).thenReturn(List.of(associate));
 
         given()
@@ -63,20 +60,17 @@ class AssociateRestApiTest extends AbstractIntegrationTest {
                 .get(URL)
         .then()
                 .statusCode(HttpStatus.OK.value());
-
     }
 
     @Test
-    void when_create_associate_return_sucess() throws IOException, ParseException {
+    void when_create_associate_return_sucess() throws IOException {
         AssociateRequest associateRequest = AssociateRequest.builder()
                         .name("Novo Associado")
                         .taxId("96979542087")
                         .build();
-        Associate associate = builder.construirEntidade();
+        Associate associate = buildAssociate();
 
-        when(service.save(AssociateMapper.toEntity(associateRequest))).thenReturn(associate);
-        when(statusClient.getStatus(associate.getTaxId()))
-                .thenReturn(StatusResponse.builder().status(AssociateStatus.ABLE_TO_VOTE).build());
+        when(service.save(any(Associate.class))).thenReturn(associate);
 
         given()
                 .accept(MediaType.APPLICATION_JSON)
@@ -86,7 +80,6 @@ class AssociateRestApiTest extends AbstractIntegrationTest {
                 .post(URL)
         .then()
                 .statusCode(HttpStatus.CREATED.value());
-
     }
 
 }

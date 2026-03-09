@@ -1,13 +1,10 @@
 package br.com.softdesign.desafio.domain.service;
 
-import br.com.softdesign.desafio.builder.entity.AssociateBuilder;
-import br.com.softdesign.desafio.builder.entity.SessionBuilder;
-import br.com.softdesign.desafio.builder.entity.VoteBuilder;
 import br.com.softdesign.desafio.domain.entity.Associate;
+import br.com.softdesign.desafio.domain.entity.Poll;
 import br.com.softdesign.desafio.domain.entity.Result;
 import br.com.softdesign.desafio.domain.entity.Session;
 import br.com.softdesign.desafio.domain.entity.Vote;
-import br.com.softdesign.desafio.infrastructure.config.testcontainers.AbstractIntegrationTest;
 import br.com.softdesign.desafio.infrastructure.enums.AssociateStatus;
 import br.com.softdesign.desafio.infrastructure.enums.SessionStatus;
 import br.com.softdesign.desafio.infrastructure.enums.VoteType;
@@ -24,23 +21,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.text.ParseException;
-import java.util.Arrays;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@ExtendWith(SpringExtension.class)
-class VoteServiceTest extends AbstractIntegrationTest {
+@ExtendWith(MockitoExtension.class)
+class VoteServiceTest {
 
     @InjectMocks
     private VoteService service;
@@ -57,171 +49,167 @@ class VoteServiceTest extends AbstractIntegrationTest {
     @Mock
     private ResultPollVotesProducer producerEvent;
 
-    @Autowired
-    private AssociateBuilder associateBuilder;
+    // ------------------------------------------------------------------ helpers
 
-    @Autowired
-    private SessionBuilder sessionBuilder;
+    private Poll buildPoll() {
+        return Poll.builder()
+                .id(UUID.randomUUID())
+                .name("Teste Pauta")
+                .description("Descrição da Pauta")
+                .createdAt(LocalDateTime.now())
+                .lastUpdate(LocalDateTime.now())
+                .build();
+    }
 
-    @Autowired
-    private VoteBuilder builder;
+    private Session buildOpenSession() {
+        return Session.builder()
+                .id(UUID.randomUUID())
+                .poll(buildPoll())
+                .status(SessionStatus.OPEN)
+                .expiration(LocalDateTime.now().plusMinutes(30))
+                .createdAt(LocalDateTime.now())
+                .lastUpdate(LocalDateTime.now())
+                .votes(List.of())
+                .build();
+    }
+
+    private Session buildExpiredSession() {
+        Session s = buildOpenSession();
+        s.setExpiration(LocalDateTime.now().minusMinutes(1));
+        return s;
+    }
+
+    private Associate buildAssociate() {
+        return Associate.builder()
+                .id(UUID.randomUUID())
+                .name("Nome Associado")
+                .taxId("58382140076")
+                .status(AssociateStatus.ABLE_TO_VOTE)
+                .createdAt(LocalDateTime.now())
+                .lastUpdate(LocalDateTime.now())
+                .build();
+    }
+
+    private Vote buildVote(Associate associate, Session session) {
+        return Vote.builder()
+                .id(UUID.randomUUID())
+                .voteType(VoteType.YES)
+                .associate(associate)
+                .session(session)
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    // ------------------------------------------------------------------ vote()
 
     @Test
-    void when_vote_returns_success() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Associate associate = associateBuilder.construirEntidade();
-        Session session = sessionBuilder.construirEntidade();
-        when(repository.existsVoteByAssociateAndSession(associate, session))
-                .thenReturn(Boolean.FALSE);
-        when(sessionRepository.findById(voteBuilder.getSession().getId()))
-                .thenReturn(Optional.of(session));
-        when(associateRepository.findById(voteBuilder.getAssociate().getId()))
-                .thenReturn(Optional.of(associate));
-        when(repository.save(voteBuilder)).thenReturn(voteBuilder);
+    void when_vote_returns_success() {
+        Session session = buildOpenSession();
+        Associate associate = buildAssociate();
+        Vote vote = buildVote(associate, session);
 
-        String response = service.vote(voteBuilder);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(associateRepository.findById(associate.getId())).thenReturn(Optional.of(associate));
+        when(repository.existsVoteByAssociateAndSession(associate, session)).thenReturn(Boolean.FALSE);
+        when(repository.save(vote)).thenReturn(vote);
+
+        String response = service.vote(vote);
 
         assertNotNull(response);
         assertEquals("Vote registered successfully.", response);
     }
 
     @Test
-    void when_vote_returns_voting_closed_exception() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Associate associate = associateBuilder.construirEntidade();
-        Session session = sessionBuilder.construirEntidade();
-        session.setExpiration(session.getCreatedAt());
-        when(repository.existsVoteByAssociateAndSession(associate, session))
-                .thenReturn(Boolean.FALSE);
-        when(sessionRepository.findById(voteBuilder.getSession().getId()))
-                .thenReturn(Optional.of(session));
-        when(associateRepository.findById(voteBuilder.getAssociate().getId()))
-                .thenReturn(Optional.of(associate));
-        when(repository.save(voteBuilder)).thenReturn(voteBuilder);
+    void when_vote_returns_voting_closed_exception() {
+        Session session = buildExpiredSession();
+        Associate associate = buildAssociate();
+        Vote vote = buildVote(associate, session);
 
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(repository.existsVoteByAssociateAndSession(associate, session)).thenReturn(Boolean.FALSE);
+        when(associateRepository.findById(associate.getId())).thenReturn(Optional.of(associate));
 
-        assertThrows(VotingClosedException.class, () -> {
-            service.vote(voteBuilder);
-        });
-
+        assertThrows(VotingClosedException.class, () -> service.vote(vote));
     }
 
     @Test
-    void when_vote_returns_session_not_found_exception() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Associate associate = associateBuilder.construirEntidade();
-        Session session = sessionBuilder.construirEntidade();
-        when(repository.existsVoteByAssociateAndSession(associate, session))
-                .thenReturn(Boolean.FALSE);
-        when(sessionRepository.findById(voteBuilder.getSession().getId()))
-                .thenReturn(Optional.empty());
-        when(associateRepository.findById(voteBuilder.getAssociate().getId()))
-                .thenReturn(Optional.of(associate));
-        when(repository.save(voteBuilder)).thenReturn(voteBuilder);
+    void when_vote_returns_session_not_found_exception() {
+        Session session = buildOpenSession();
+        Associate associate = buildAssociate();
+        Vote vote = buildVote(associate, session);
 
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.empty());
 
-        assertThrows(SessionNotFoundException.class, () -> {
-            service.vote(voteBuilder);
-        });
+        assertThrows(SessionNotFoundException.class, () -> service.vote(vote));
     }
 
     @Test
-    void when_vote_returns_associate_unable_to_vote_exception() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Associate associate = associateBuilder.construirEntidade();
+    void when_vote_returns_associate_unable_to_vote_exception() {
+        Session session = buildOpenSession();
+        Associate associate = buildAssociate();
         associate.setStatus(AssociateStatus.UNABLE_TO_VOTE);
-        Session session = sessionBuilder.construirEntidade();
+        Vote vote = buildVote(associate, session);
 
-        when(repository.existsVoteByAssociateAndSession(associate, session))
-                .thenReturn(Boolean.FALSE);
-        when(sessionRepository.findById(voteBuilder.getSession().getId()))
-                .thenReturn(Optional.of(session));
-        when(associateRepository.findById(voteBuilder.getAssociate().getId()))
-                .thenReturn(Optional.of(associate));
-        when(repository.save(voteBuilder)).thenReturn(voteBuilder);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(associateRepository.findById(associate.getId())).thenReturn(Optional.of(associate));
+        when(repository.existsVoteByAssociateAndSession(associate, session)).thenReturn(Boolean.FALSE);
 
-
-        assertThrows(AssociateUnableToVoteException.class, () -> {
-            service.vote(voteBuilder);
-        });
+        assertThrows(AssociateUnableToVoteException.class, () -> service.vote(vote));
     }
 
     @Test
-    void when_vote_returns_associate_vote_unique_exception() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Associate associate = associateBuilder.construirEntidade();
-        Session session = sessionBuilder.construirEntidade();
-        voteBuilder.setAssociate(associate);
-        voteBuilder.setSession(session);
+    void when_vote_returns_associate_vote_unique_exception() {
+        Session session = buildOpenSession();
+        Associate associate = buildAssociate();
+        Vote vote = buildVote(associate, session);
 
-        when(sessionRepository.findById(voteBuilder.getSession().getId()))
-                .thenReturn(Optional.of(session));
-        when(associateRepository.findById(voteBuilder.getAssociate().getId()))
-                .thenReturn(Optional.of(associate));
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(repository.existsVoteByAssociateAndSession(associate, session)).thenReturn(Boolean.TRUE);
+        when(associateRepository.findById(associate.getId())).thenReturn(Optional.of(associate));
 
-        when(repository.existsVoteByAssociateAndSession(associate, session))
-        .thenReturn(Boolean.TRUE);
-
-        assertThrows(AssociateVoteUniqueException.class, () -> {
-            service.vote(voteBuilder);
-        });
+        assertThrows(AssociateVoteUniqueException.class, () -> service.vote(vote));
     }
 
-    @Test
-    void when_count_votes_session_return_success() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Session session = sessionBuilder.construirEntidade();
-        session.setExpiration(session.getCreatedAt());
-        session.setVotes(List.of(voteBuilder));
-        when(sessionRepository.findById(voteBuilder.getSession().getId()))
-                .thenReturn(Optional.of(session));
+    // ------------------------------------------------------------------ countVotes()
 
-        Result response = service.countVotes(voteBuilder.getSession().getId().toString());
+    @Test
+    void when_count_votes_session_return_success() {
+        Session session = buildExpiredSession();
+        Vote vote = buildVote(buildAssociate(), session);
+        session.setVotes(List.of(vote));
+
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+
+        Result response = service.countVotes(session.getId().toString());
         assertNotNull(response);
     }
 
     @Test
-    void when_count_votes_session_return_session_not_count_vote_exception() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Session session = sessionBuilder.construirEntidade();
-        session.setVotes(List.of(voteBuilder));
+    void when_count_votes_session_return_session_not_count_vote_exception() {
+        Session session = buildOpenSession();
+        Vote vote = buildVote(buildAssociate(), session);
+        session.setVotes(List.of(vote));
 
-        when(sessionRepository.findById(voteBuilder.getSession().getId()))
-                .thenReturn(Optional.of(session));
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
 
-        assertThrows(SessionNotCountVoteException.class, () -> {
-            service.countVotes(voteBuilder.getSession().getId().toString());
-        });
+        assertThrows(SessionNotCountVoteException.class,
+                () -> service.countVotes(session.getId().toString()));
     }
 
-    @Test
-    void when_counting_votes_session_return_success() throws ParseException {
-        Vote voteBuilder = builder.construirEntidade();
-        Session session = sessionBuilder.construirEntidade();
-        session.setExpiration(session.getCreatedAt());
-        session.setVotes(List.of(voteBuilder));
-        when(sessionRepository.findByStatus(SessionStatus.OPEN))
-                .thenReturn(List.of(session));
+    // ------------------------------------------------------------------ countingVotesEvent()
 
-        Result result = Result.builder()
-                        .countVotes(session.getVotes().size())
-                        .poll(session.getPoll())
-                        .questions(questions(session))
-                        .build();
+    @Test
+    void when_counting_votes_session_return_success() {
+        Session session = buildExpiredSession();
+        Vote vote = buildVote(buildAssociate(), session);
+        session.setVotes(List.of(vote));
+
+        when(sessionRepository.findByStatus(SessionStatus.OPEN)).thenReturn(List.of(session));
+        when(sessionRepository.saveAll(anyList())).thenReturn(List.of(session));
 
         service.countingVotesEvent();
-
-        producerEvent.send(result);
 
         verify(producerEvent).send(isA(Result.class));
     }
 
-    private Map<String, Integer> questions(Session session) {
-        return Arrays.stream(VoteType.values())
-                .collect(Collectors.toMap(VoteType::name, v -> getVotesByType(session, v).size()));
-    }
-
-    private List<Vote> getVotesByType(Session session, VoteType voteType) {
-        return session.getVotes().stream().filter(v -> voteType.equals(v.getVoteType())).collect(Collectors.toList());
-    }
 }
