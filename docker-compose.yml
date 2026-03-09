@@ -1,5 +1,4 @@
 services:
-
   db:
     image: postgres:14-alpine
     container_name: db_desafio_api
@@ -18,7 +17,7 @@ services:
   rabbitmq:
     image: rabbitmq:4.2.4-management-alpine
     container_name: rabbitmq_desafio_api
-    hostname: 'app-rabbitmq'
+    hostname: "app-rabbitmq"
     ports:
       - "15672:15672"
       - "5672:5672"
@@ -38,11 +37,23 @@ services:
     environment:
       DATASOURCE_URL: jdbc:postgresql://db_desafio_api:5432/desafio_api
       RABBITMQ_HOST: rabbitmq_desafio_api
+      FEIGN_CLIENT_USER_INFO_URL: http://cpf-mock:8080/
     networks:
       - DESAFIO_SOFTDESIGN_NETWORK
     depends_on:
       - db
       - rabbitmq
+      - cpf-mock
+
+  cpf-mock:
+    image: wiremock/wiremock:latest
+    container_name: cpf_mock_api
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings
+    networks:
+      - DESAFIO_SOFTDESIGN_NETWORK
 
 volumes:
   DESAFIO_SOFTDESIGN_DATA_DB:

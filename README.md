@@ -186,11 +186,20 @@ A API utiliza **versionamento por URI path** (`/v1/`). Versões futuras serão a
 
 ## 📡 Integração com Serviço Externo (Bônus 1)
 
-Ao registrar um associado, o sistema consulta `GET https://user-info.herokuapp.com/users/{cpf}` para verificar se o CPF pode votar:
+O sistema consulta a URL externa definida em `feign.client.user-info.url` (via `GET /users/{cpf}`) para verificar se o associado tem permissão para votar. O comportamento esperado é:
 
-- `ABLE_TO_VOTE` → associado habilitado
-- `UNABLE_TO_VOTE` → voto bloqueado (HTTP 422)
-- CPF inválido → HTTP 404 propagado como erro
+- Retorno HTTP 200 `{"status": "ABLE_TO_VOTE"}` → Cadastro liberado
+- Retorno HTTP 200 `{"status": "UNABLE_TO_VOTE"}` → Cadastro bloqueado (HTTP 422 propagado)
+- Retorno HTTP 404 → CPF inválido (HTTP 404 propagado)
+
+**Atenção (Mock Local):** Sabendo que a antiga API do Heroku (`https://user-info.herokuapp.com/`) não está mais no ar permanentemente, o ambiente local (`docker-compose`) já inclui um contêiner auxiliar chamado **`cpf-mock`** com a imagem do [WireMock](https://wiremock.org/).
+O fluxo pelo Docker rodará local e apontará automático para ele. Os CPFs cadastrados no mock são:
+
+- **`12345678901`**: retorna `404 Not Found` (simula CPF inexistente na Base)
+- **`11122233344`**: retorna `200` com `UNABLE_TO_VOTE`
+- **Qualquer outro CPF (ex: `58382140076`)**: retorna `200` com `ABLE_TO_VOTE`
+
+Note também que a aplicação tem robustez embutida (Circuit Breaker passivo): caso o serviço saia do ar (Timout/5xx), a aplicação emite um alerta nos logs mas preserva a capacidade de votação, registrando o associado como apto (`ABLE_TO_VOTE`).
 
 ---
 

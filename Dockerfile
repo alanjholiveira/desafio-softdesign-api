@@ -1,4 +1,4 @@
-FROM openjdk:21-jdk-slim AS build
+FROM eclipse-temurin:21-jdk-alpine AS build
 MAINTAINER alanjhone@gmail.com
 
 COPY . /home/gradle/src
@@ -6,7 +6,7 @@ WORKDIR /home/gradle/src
 
 RUN ./gradlew build -x test -x testClasses --no-daemon
 
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:21-jre-alpine
 
 RUN mkdir /app
 

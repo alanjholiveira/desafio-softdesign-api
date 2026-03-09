@@ -71,9 +71,22 @@ class AssociateServiceTest {
     void when_save_return_status_not_found() {
         Associate associateBuild = buildAssociate();
         when(statusClient.getStatus(associateBuild.getTaxId()))
-                .thenThrow(FeignException.class);
+                .thenThrow(FeignException.NotFound.class);
 
         assertThrows(AssociateNotFoundException.class, () -> service.save(associateBuild));
+    }
+
+    @Test
+    void when_save_fallback_when_service_unavailable() {
+        Associate associateBuild = buildAssociate();
+        when(statusClient.getStatus(associateBuild.getTaxId()))
+                .thenThrow(FeignException.ServiceUnavailable.class);
+        when(repository.save(associateBuild)).thenReturn(associateBuild);
+
+        Associate result = service.save(associateBuild);
+
+        assertNotNull(result);
+        assertEquals(AssociateStatus.ABLE_TO_VOTE, result.getStatus());
     }
 
 }

@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(value = "ObterSituacaoAssociado", url = "https://user-info.herokuapp.com/")
+@FeignClient(value = "ObterSituacaoAssociado", url = "${feign.client.user-info.url:https://user-info.herokuapp.com/}")
 public interface AssociateStatusClient {
 
     @GetMapping(value = "/users/{taxId}", produces = "application/json")
