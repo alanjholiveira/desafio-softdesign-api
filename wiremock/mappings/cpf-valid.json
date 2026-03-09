@@ -3,8 +3,9 @@
     {
       "request": {
         "method": "GET",
-        "urlPattern": "/users/12345678901"
+        "urlPattern": "/users/96102449711"
       },
+      "priority": 1,
       "response": {
         "status": 404,
         "headers": {
@@ -18,8 +19,9 @@
     {
       "request": {
         "method": "GET",
-        "urlPattern": "/users/11122233344"
+        "urlPattern": "/users/78102795050"
       },
+      "priority": 1,
       "response": {
         "status": 200,
         "headers": {
@@ -33,8 +35,9 @@
     {
       "request": {
         "method": "GET",
-        "urlPattern": "/users/\\d+"
+        "urlPattern": "/users/27603748666"
       },
+      "priority": 1,
       "response": {
         "status": 200,
         "headers": {
@@ -42,6 +45,22 @@
         },
         "jsonBody": {
           "status": "ABLE_TO_VOTE"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPattern": "/users/\\d+"
+      },
+      "priority": 10,
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "message": "CPF não encontrado, fallback"
         }
       }
     }
