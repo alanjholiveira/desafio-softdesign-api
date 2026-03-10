@@ -220,6 +220,66 @@ Para gerar o relatório de cobertura JaCoCo:
 
 ---
 
+## ⚡ Teste de Performance (Bônus 2)
+
+O teste de carga está implementado com **[k6](https://k6.io/)** no arquivo [`k6-load-test.js`](./k6-load-test.js).
+
+### Pré-requisito
+
+A aplicação precisa estar rodando via Docker antes de executar o teste:
+
+```bash
+docker-compose up -d
+```
+
+Aguarde até que todos os serviços estejam saudáveis (especialmente o Oracle, que pode levar ~60s).
+
+### Executar com Docker (recomendado — sem instalar k6)
+
+```bash
+docker run --rm -i \
+  --network=desafio-softdesign-api_DESAFIO_SOFTDESIGN_NETWORK \
+  grafana/k6 run - < k6-load-test.js
+```
+
+### Executar com k6 instalado localmente
+
+```bash
+# macOS
+brew install k6
+
+# Executar
+k6 run k6-load-test.js
+```
+
+### O que o teste faz
+
+O script simula o fluxo completo de votação em carga:
+
+1. **setup()** — Cria 1 pauta e abre 1 sessão (compartilhada entre todos os VUs)
+2. **default()** — Para cada Virtual User (VU), em loop:
+   - Cadastra um novo associado com CPF gerado (prefixo `999`)
+   - Registra um voto `YES` ou `NO` aleatório na sessão criada no setup
+
+### Configuração dos estágios
+
+| Fase             | Duração | VUs    |
+| ---------------- | ------- | ------ |
+| Ramp-up          | 15s     | 0 → 5  |
+| Carga sustentada | 30s     | 10     |
+| Ramp-down        | 15s     | 10 → 0 |
+
+### Thresholds (critérios de aprovação)
+
+| Métrica                   | Threshold |
+| ------------------------- | --------- |
+| `http_req_duration` p(95) | < 500ms   |
+| `http_req_failed` rate    | < 1%      |
+
+Se algum threshold for violado, o k6 retorna exit code `99` e imprime `✗` ao lado da métrica.
+
+---
+
 ## 📚 Documentação (Swagger)
 
 A API REST é completamente e extensivamente documentada pela especificação Swagger/OpenAPI. Classes controladoras e DTOs de Request e Response possuem anotações `@Operation`, `@ApiResponses` e `@Schema` informando descrições, exemplos e Status Codes (como 200, 404, 422).
