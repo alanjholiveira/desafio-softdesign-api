@@ -2,6 +2,11 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.3'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
+}
+
+jacoco {
+	toolVersion = "0.8.12"
 }
 
 group = 'br.com.softdesign'
@@ -68,4 +73,25 @@ dependencyManagement {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+		html.required = true
+	}
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+				'br/com/softdesign/desafio/infrastructure/exception/**',
+				'br/com/softdesign/desafio/infrastructure/config/**',
+				'br/com/softdesign/desafio/*Application*',
+				'br/com/softdesign/desafio/application/rest/v1/request/**',
+				'br/com/softdesign/desafio/application/rest/v1/response/**',
+				'br/com/softdesign/desafio/domain/entity/**'
+			])
+		}))
+	}
 }
