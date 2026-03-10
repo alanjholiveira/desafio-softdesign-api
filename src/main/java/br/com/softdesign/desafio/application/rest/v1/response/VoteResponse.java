@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Getter
 @Setter
@@ -13,6 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class VoteResponse {
 
+    @Schema(description = "Mensagem de confirmação que o voto foi registrado", example = "Voto computado com sucesso.")
     private String message;
 
 }

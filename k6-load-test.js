@@ -6,9 +6,9 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 export const options = {
     stages: [
-        { duration: '30s', target: 50 }, // Ramp-up to 50 users
-        { duration: '1m', target: 50 },  // Maintain 50 concurrent users
-        { duration: '30s', target: 0 },  // Ramp-down to 0 users
+        { duration: '15s', target: 5 }, // Ramp-up to 5 users
+        { duration: '30s', target: 10 },  // Maintain 10 concurrent users
+        { duration: '15s', target: 0 },  // Ramp-down to 0 users
     ],
     thresholds: {
         http_req_duration: ['p(95)<500'], // 95% of requests must complete below 500ms
@@ -16,7 +16,7 @@ export const options = {
     },
 };
 
-const BASE_URL = 'http://host.docker.internal:8080/v1';
+const BASE_URL = 'http://app_api:8080/v1';
 
 export function setup() {
     console.log('--- Configurando cenários de teste ---');

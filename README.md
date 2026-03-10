@@ -1,6 +1,14 @@
 # desafio-softdesign-api
 
-API REST para gerenciamento de sessões de votação cooperativa, desenvolvida com Java 21 + Spring Boot 4.
+API REST para gerenciamento de sessões de votação cooperativa, desenvolvida com
+
+- **Java 21**,
+- **Spring Boot 4**,
+- **Oracle Database** (Relational storage via Flyway/Liquibase and JPA),
+- **Testcontainers** (Robust integration testing),
+- **RabbitMQ** (AMQP Messaging),
+- **Swagger/OpenAPI 3.0** (Extensive API documentation),
+- **WireMock** (External Service mock routing).
 
 ---
 
@@ -13,6 +21,7 @@ API REST para gerenciamento de sessões de votação cooperativa, desenvolvida c
 | Spring Data JPA        | —      | Persistência                          |
 | Liquibase              | —      | Migrations de banco                   |
 | PostgreSQL             | 14     | Banco de dados                        |
+| Oracle Database        | 23c    | Banco de dados                        |
 | RabbitMQ               | 4.2.4  | Mensageria (resultado de votação)     |
 | Spring Cloud OpenFeign | —      | Integração com serviço externo de CPF |
 | ShedLock               | 7.6.0  | Bloqueio distribuído do scheduler     |
@@ -39,8 +48,12 @@ docker-compose up -d
 
 Isso sobe:
 
-- PostgreSQL na porta **5432**
-- RabbitMQ na porta **5672** (management UI na **15672**)
+- **PostgreSQL**: (Legacy - superseded)
+
+* **Oracle**: Banco de dados principal da aplicação (Porta 1521).
+* **RabbitMQ**: Message Broker (Porta 5672 para conexões AMQP, e 15672 para a Management UI).
+* **WireMock**: Mock server emulado para as chamadas externas (Porta 8081).
+* **App (API)**: A aplicação principal da solução configurada (Porta 8080).
 
 ### 2. Rodar a aplicação
 
@@ -172,12 +185,12 @@ POST /v1/votes
 
 Para testar o fluxo completo da aplicação (Cadastro → Validação CPF → Voto → Resultado), siga esta ordem:
 
-1. **Cadastre uma Pauta** (`POST /v1/polls`). Guarde o `id` retornado.
-2. **Abra uma Sessão** (`POST /v1/sessions` enviando o `pollId`). Guarde o `id` da sessão aberta.
-3. **Cadastre o Associado** (`POST /v1/associates`). Utilize o CPF válido para mock (`27603748666`) para que a simulação de serviço passe o associado como `ABLE_TO_VOTE`.
-4. **Registre o Voto** (`POST /v1/votes`). Envie o ID do associado, da sessão e o voto (`YES` ou `NO`).
-5. **Aguarde a Sessão Expirar**. Após 1 minuto (por padrão), o job interno (ShedLock cron) irá processar a sessão.
-6. **Consulte o Resultado**. O resultado será automaticamente disparado via mensageria (RabbitMQ, fila `notificacao.pauta.queue`), finalizando o fluxo assíncrono.
+1.  **Cadastre uma Pauta** (`POST /v1/polls`). Guarde o `id` retornado.
+2.  **Abra uma Sessão** (`POST /v1/sessions` enviando o `pollId`). Guarde o `id` da sessão aberta.
+3.  **Cadastre o Associado** (`POST /v1/associates`). Utilize o CPF válido para mock (`27603748666`) para que a simulação de serviço passe o associado como `ABLE_TO_VOTE`.
+4.  **Registre o Voto** (`POST /v1/votes`). Envie o ID do associado, da sessão e o voto (`YES` ou `NO`).
+5.  **Aguarde a Sessão Expirar**. Após 1 minuto (por padrão), o job interno (ShedLock cron) irá processar a sessão.
+6.  **Consulte o Resultado**. O resultado será automaticamente disparado via mensageria (RabbitMQ, fila `notificacao.pauta.queue`), finalizando o fluxo assíncrono.
 
 ---
 
@@ -188,6 +201,15 @@ Os testes de integração utilizam **Testcontainers** — o Docker precisa estar
 ```bash
 ./gradlew test
 ```
+
+---
+
+## 📚 Documentação (Swagger)
+
+A API REST é completamente e extensivamente documentada pela especificação Swagger/OpenAPI. Classes controladoras e DTOs de Request e Response possuem anotações `@Operation`, `@ApiResponses` e `@Schema` informando descrições, exemplos e Status Codes (como 200, 404, 422).
+
+Para acessar a UI gráfica do Swagger de forma interativa, navegue até:
+**http://localhost:8080/swagger-ui.html**
 
 ---
 

@@ -1,18 +1,18 @@
 services:
   db:
-    image: postgres:14-alpine
+    image: gvenzl/oracle-free
     container_name: db_desafio_api
     hostname: app_db
     ports:
-      - "5432:5432"
+      - "1521:1521"
     environment:
-      POSTGRES_USER: desafio
-      POSTGRES_PASSWORD: desafioApi
-      POSTGRES_DB: desafio_api
+      ORACLE_PASSWORD: desafioApi
+      APP_USER: desafio
+      APP_USER_PASSWORD: desafioApi
     networks:
       - DESAFIO_SOFTDESIGN_NETWORK
     volumes:
-      - DESAFIO_SOFTDESIGN_DATA_DB:/var/lib/postgresql/data
+      - DESAFIO_SOFTDESIGN_DATA_DB:/opt/oracle/oradata
 
   rabbitmq:
     image: rabbitmq:4.2.4-management-alpine
@@ -35,7 +35,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DATASOURCE_URL: jdbc:postgresql://db_desafio_api:5432/desafio_api
+      DATASOURCE_URL: jdbc:oracle:thin:@db_desafio_api:1521/FREEPDB1
       RABBITMQ_HOST: rabbitmq_desafio_api
       FEIGN_CLIENT_USER_INFO_URL: http://cpf-mock:8080/
     networks:
