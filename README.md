@@ -20,8 +20,7 @@ API REST para gerenciamento de sessões de votação cooperativa, desenvolvida c
 | Spring Boot            | 4.0.3  | Framework principal                   |
 | Spring Data JPA        | —      | Persistência                          |
 | Liquibase              | —      | Migrations de banco                   |
-| PostgreSQL             | 14     | Banco de dados                        |
-| Oracle Database        | 23c    | Banco de dados                        |
+| Oracle Database        | 23c    | Banco de dados relacional             |
 | RabbitMQ               | 4.2.4  | Mensageria (resultado de votação)     |
 | Spring Cloud OpenFeign | —      | Integração com serviço externo de CPF |
 | ShedLock               | 7.6.0  | Bloqueio distribuído do scheduler     |
@@ -40,7 +39,7 @@ API REST para gerenciamento de sessões de votação cooperativa, desenvolvida c
 
 ## 🚀 Como executar
 
-### 1. Subir as dependências (PostgreSQL + RabbitMQ)
+### 1. Subir as dependências (Oracle + RabbitMQ)
 
 ```bash
 docker-compose up -d
@@ -48,12 +47,10 @@ docker-compose up -d
 
 Isso sobe:
 
-- **PostgreSQL**: (Legacy - superseded)
-
-* **Oracle**: Banco de dados principal da aplicação (Porta 1521).
-* **RabbitMQ**: Message Broker (Porta 5672 para conexões AMQP, e 15672 para a Management UI).
-* **WireMock**: Mock server emulado para as chamadas externas (Porta 8081).
-* **App (API)**: A aplicação principal da solução configurada (Porta 8080).
+- **Oracle Database** (`gvenzl/oracle-free`): Banco de dados principal da aplicação (Porta 1521, service `FREEPDB1`).
+- **RabbitMQ**: Message Broker (Porta 5672 para conexões AMQP, e 15672 para a Management UI).
+- **WireMock**: Mock server emulado para as chamadas externas de CPF (Porta 8081).
+- **App (API)**: A aplicação principal da solução (Porta 8080).
 
 ### 2. Rodar a aplicação
 
@@ -71,17 +68,26 @@ Acesse: `http://localhost:8080/swagger-ui.html`
 
 ## 🐳 Rodar tudo via Docker
 
-Para construir e rodar a aplicação em container (junto com as dependências):
+A forma mais simples é usar o `docker-compose`, que já build, sobe o Oracle, RabbitMQ, WireMock e a API num único comando:
 
 ```bash
-# Build da imagem
+# Build e subir todos os serviços
+docker-compose up -d --build
+```
+
+Ou, se preferir rodar o container da API manualmente após subir as dependências:
+
+```bash
+# 1. Subir apenas as dependências
+docker-compose up -d db rabbitmq cpf-mock
+
+# 2. Build da imagem
 docker build -t desafio-softdesign-api .
 
-# Rodar com as dependências do docker-compose
-docker-compose up -d
+# 3. Rodar a API apontando para o Oracle
 docker run --network=desafio-softdesign-api_DESAFIO_SOFTDESIGN_NETWORK \
-  -e DATASOURCE_URL=jdbc:postgresql://app_db:5432/desafio_api \
-  -e RABBITMQ_HOST=app-rabbitmq \
+  -e DATASOURCE_URL=jdbc:oracle:thin:@db_desafio_api:1521/FREEPDB1 \
+  -e RABBITMQ_HOST=rabbitmq_desafio_api \
   -p 8080:8080 \
   desafio-softdesign-api
 ```
@@ -90,16 +96,17 @@ docker run --network=desafio-softdesign-api_DESAFIO_SOFTDESIGN_NETWORK \
 
 ## 🔑 Variáveis de Ambiente
 
-| Variável          | Padrão                                         | Descrição                |
-| ----------------- | ---------------------------------------------- | ------------------------ |
-| `DATASOURCE_URL`  | `jdbc:postgresql://localhost:5432/desafio_api` | URL do banco             |
-| `DATASOURCE_USER` | `desafio`                                      | Usuário do banco         |
-| `DATASOURCE_PASS` | `desafioApi`                                   | Senha do banco           |
-| `RABBITMQ_HOST`   | `localhost`                                    | Host do RabbitMQ         |
-| `RABBITMQ_PORT`   | `5672`                                         | Porta do RabbitMQ        |
-| `RABBITMQ_USER`   | `guest`                                        | Usuário do RabbitMQ      |
-| `RABBITMQ_PASS`   | `guest`                                        | Senha do RabbitMQ        |
-| `RABBITMQ_VHOST`  | `/`                                            | Virtual host do RabbitMQ |
+| Variável                     | Padrão                                      | Descrição                |
+| ---------------------------- | ------------------------------------------- | ------------------------ |
+| `DATASOURCE_URL`             | `jdbc:oracle:thin:@localhost:1521/FREEPDB1` | URL JDBC do Oracle       |
+| `DATASOURCE_USER`            | `desafio`                                   | Usuário do banco         |
+| `DATASOURCE_PASS`            | `desafioApi`                                | Senha do banco           |
+| `RABBITMQ_HOST`              | `localhost`                                 | Host do RabbitMQ         |
+| `RABBITMQ_PORT`              | `5672`                                      | Porta do RabbitMQ        |
+| `RABBITMQ_USER`              | `guest`                                     | Usuário do RabbitMQ      |
+| `RABBITMQ_PASS`              | `guest`                                     | Senha do RabbitMQ        |
+| `RABBITMQ_VHOST`             | `/`                                         | Virtual host do RabbitMQ |
+| `FEIGN_CLIENT_USER_INFO_URL` | `http://cpf-mock:8080/`                     | URL do serviço mock CPF  |
 
 ---
 
@@ -196,11 +203,20 @@ Para testar o fluxo completo da aplicação (Cadastro → Validação CPF → Vo
 
 ## 🧪 Rodar os testes
 
-Os testes de integração utilizam **Testcontainers** — o Docker precisa estar em execução.
+Os testes de integração utilizam **Testcontainers** — o Docker precisa estar em execução. Os containers de **Oracle XE** e **RabbitMQ** são levantados automaticamente durante a execução dos testes.
 
 ```bash
 ./gradlew test
 ```
+
+Para gerar o relatório de cobertura JaCoCo:
+
+```bash
+./gradlew test jacocoTestReport
+# Relatório HTML: build/reports/jacoco/test/html/index.html
+```
+
+> ✅ Cobertura atual: **100%** de linhas e métodos (excluindo boilerplate de entidades, DTOs e configurações).
 
 ---
 
