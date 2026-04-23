@@ -10,6 +10,10 @@ FROM eclipse-temurin:21-jre-alpine
 
 RUN mkdir /app
 
+# Cria usuário não-root e define como padrão
+RUN adduser -S appuser && chown -R appuser /app
+USER appuser
+
 COPY --from=build /home/gradle/src/build/libs/desafio-0.0.1-SNAPSHOT.jar /app
 
 EXPOSE 8080
