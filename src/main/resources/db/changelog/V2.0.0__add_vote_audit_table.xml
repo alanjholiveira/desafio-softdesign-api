@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.26.xsd">
+
+    <!--
+    =================================================================================
+    V2.0.0: Adiciona a tabela de auditoria de votos (VoteAudit)
+    Objetivo: Rastrear o histórico de todas as ações e mudanças de votos.
+    =================================================================================
+    -->
+
+    <changeSet id="2.0.0-add-vote-audit-table" author="system">
+        <createTable tableName="vote_audit">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="vote_id" type="BIGINT" nullable="false">
+                <constraints foreignKey="true" foreignTableName="vote"/>
+            </column>
+            <column name="associate_id" type="BIGINT" nullable="false">
+                <constraints foreignKey="true" foreignTableName="associate"/>
+            </column>
+            <column name="action_type" type="VARCHAR(50)" nullable="false"/>
+            <column name="timestamp" type="TIMESTAMP" nullable="false"/>
+            <column name="details" type="TEXT"/>
+        </createTable>
+
+        <!-- Adiciona Foreign Key para Voto -->
+        <addForeignKeyConstraint
+                baseColumnNames="vote_id"
+                baseTableName="vote_audit"
+                constraintName="fk_vote_audit_vote"
+                localColumnNames="vote_id"
+                foreignTableName="vote"
+                foreignColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <!-- Adiciona Foreign Key para Associado -->
+        <addForeignKeyConstraint
+                baseColumnNames="associate_id"
+                baseTableName="vote_audit"
+                constraintName="fk_vote_audit_associate"
+                localColumnNames="associate_id"
+                foreignTableName="associate"
+                foreignColumnNames="id"
+                onDelete="RESTRICT"/>
+    </changeSet>
+
+</databaseChangeLog>
