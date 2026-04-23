@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.26.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!-- Criação da tabela de auditoria de votos -->
+    <changeSet id="add_vote_audit_table" author="system">
+        <createTable tableName="vote_audit">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="vote_id" type="BIGINT" nullable="false">
+                <constraints foreignKey="true" references="votes(id)" onDelete="CASCADE"/>
+            </column>
+            <column name="associate_id" type="BIGINT" nullable="false">
+                <constraints foreignKey="true" references="associates(id)" onDelete="RESTRICT"/>
+            </column>
+            <column name="poll_id" type="BIGINT" nullable="false">
+                <constraints foreignKey="true" references="polls(id)" onDelete="RESTRICT"/>
+            </column>
+            <column name="voted_value" type="VARCHAR(10)" nullable="false">
+                <constraints unique="false"/>
+            </column>
+            <column name="timestamp" type="TIMESTAMP" nullable="false"/>
+            <column name="ip_address" type="VARCHAR(45)"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
