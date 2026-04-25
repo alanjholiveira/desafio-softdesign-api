@@ -8,6 +8,7 @@ import br.com.softdesign.desafio.infrastructure.enums.AssociateStatus;
 import br.com.softdesign.desafio.infrastructure.enums.SessionStatus;
 import br.com.softdesign.desafio.infrastructure.enums.VoteType;
 import br.com.softdesign.desafio.infrastructure.exception.AssociateNotFoundException;
+import br.com.softdesign.desafio.infrastructure.exception.PollNotFoundException;
 import br.com.softdesign.desafio.infrastructure.exception.AssociateUnableToVoteException;
 import br.com.softdesign.desafio.infrastructure.exception.AssociateVoteUniqueException;
 import br.com.softdesign.desafio.infrastructure.exception.SessionNotCountVoteException;
@@ -15,6 +16,7 @@ import br.com.softdesign.desafio.infrastructure.exception.SessionNotFoundExcepti
 import br.com.softdesign.desafio.infrastructure.exception.VotingClosedException;
 import br.com.softdesign.desafio.infrastructure.producer.ResultPollVotesProducer;
 import br.com.softdesign.desafio.infrastructure.repository.AssociateRepository;
+import br.com.softdesign.desafio.infrastructure.repository.PollRepository;
 import br.com.softdesign.desafio.infrastructure.repository.SessionRepository;
 import br.com.softdesign.desafio.infrastructure.repository.VoteRepository;
 import lombok.AllArgsConstructor;
@@ -28,6 +30,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import br.com.softdesign.desafio.application.rest.v1.response.PollResultResponse;
+
 @Slf4j
 @Service
 @Transactional(readOnly = true)
@@ -37,6 +41,7 @@ public class VoteService {
     private final VoteRepository repository;
     private final AssociateRepository associateRepository;
     private final SessionRepository sessionRepository;
+    private final PollRepository pollRepository;
     private final ResultPollVotesProducer producerEvent;
 
     public String vote(Vote entity) {
@@ -78,6 +83,46 @@ public class VoteService {
         log.info("Votes successfully counted. Session: {}", sessionId);
         return getResultBuild(session);
 
+    }
+
+    public PollResultResponse getPollResult(String pollId) {
+        log.info("Getting poll result. PollId: {}", pollId);
+        br.com.softdesign.desafio.domain.entity.Poll poll = pollRepository.findById(UUID.fromString(pollId))
+                .orElseThrow(PollNotFoundException::new);
+
+        Session session = poll.getSession();
+        if (session == null) {
+            throw new SessionNotFoundException();
+        }
+
+        Boolean isOpen = session.isOpenSession();
+        List<Vote> votes = session.getVotes();
+
+        int yesVotes = (int) votes.stream().filter(v -> v.getVoteType().equals(br.com.softdesign.desafio.infrastructure.enums.VoteType.YES)).count();
+        int noVotes = (int) votes.stream().filter(v -> v.getVoteType().equals(br.com.softdesign.desafio.infrastructure.enums.VoteType.NO)).count();
+        int totalVotes = votes.size();
+
+        String result = null;
+        if (!isOpen) {
+            if (yesVotes > noVotes) {
+                result = "APPROVED";
+            } else if (noVotes > yesVotes) {
+                result = "REJECTED";
+            } else {
+                result = "TIE";
+            }
+        }
+
+        return PollResultResponse.builder()
+                .pollId(pollId)
+                .pollTitle(poll.getName())
+                .totalVotes(totalVotes)
+                .yesVotes(yesVotes)
+                .noVotes(noVotes)
+                .result(result)
+                .sessionStatus(isOpen ? "OPEN" : "CLOSED")
+                .partial(isOpen)
+                .build();
     }
 
     @Transactional

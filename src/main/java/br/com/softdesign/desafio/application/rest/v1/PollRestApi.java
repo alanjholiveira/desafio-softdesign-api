@@ -3,8 +3,10 @@ package br.com.softdesign.desafio.application.rest.v1;
 import br.com.softdesign.desafio.application.mapper.PollMapper;
 import br.com.softdesign.desafio.application.rest.v1.request.PollRequest;
 import br.com.softdesign.desafio.application.rest.v1.response.PollResponse;
+import br.com.softdesign.desafio.application.rest.v1.response.PollResultResponse;
 import br.com.softdesign.desafio.domain.entity.Poll;
 import br.com.softdesign.desafio.domain.service.PollService;
+import br.com.softdesign.desafio.domain.service.VoteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -17,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -34,6 +37,7 @@ import java.util.stream.Collectors;
 public class PollRestApi {
 
     private PollService service;
+    private VoteService voteService;
 
     @Operation(summary = "API list all Poll")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
@@ -64,6 +68,22 @@ public class PollRestApi {
         Poll poll = service.save(PollMapper.toEntity(request));
 
         return new ResponseEntity<>(PollMapper.toResponse(poll), HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Get poll result")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
+                            @ApiResponse(responseCode = "400", description = "Bad Request"),
+                            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                            @ApiResponse(responseCode = "404", description = "Not Found"),
+                            @ApiResponse(responseCode = "422", description = "Unprocessable Entity"),
+                            @ApiResponse(responseCode = "500", description = "Internal Server Error") })
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("{pollId}/result")
+    public ResponseEntity<PollResultResponse> getPollResult(@PathVariable String pollId) {
+        log.info("Receiving request to get poll result. PollId: {}", pollId);
+        PollResultResponse response = voteService.getPollResult(pollId);
+
+        return ResponseEntity.ok(response);
     }
 
 }

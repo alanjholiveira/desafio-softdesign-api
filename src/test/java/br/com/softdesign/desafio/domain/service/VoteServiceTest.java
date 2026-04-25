@@ -1,5 +1,6 @@
 package br.com.softdesign.desafio.domain.service;
 
+import br.com.softdesign.desafio.application.rest.v1.response.PollResultResponse;
 import br.com.softdesign.desafio.domain.entity.Associate;
 import br.com.softdesign.desafio.domain.entity.Poll;
 import br.com.softdesign.desafio.domain.entity.Result;
@@ -15,6 +16,7 @@ import br.com.softdesign.desafio.infrastructure.exception.SessionNotFoundExcepti
 import br.com.softdesign.desafio.infrastructure.exception.VotingClosedException;
 import br.com.softdesign.desafio.infrastructure.producer.ResultPollVotesProducer;
 import br.com.softdesign.desafio.infrastructure.repository.AssociateRepository;
+import br.com.softdesign.desafio.infrastructure.repository.PollRepository;
 import br.com.softdesign.desafio.infrastructure.repository.SessionRepository;
 import br.com.softdesign.desafio.infrastructure.repository.VoteRepository;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,9 @@ class VoteServiceTest {
 
     @Mock
     private SessionRepository sessionRepository;
+
+    @Mock
+    private PollRepository pollRepository;
 
     @Mock
     private ResultPollVotesProducer producerEvent;
@@ -210,6 +215,106 @@ class VoteServiceTest {
         service.countingVotesEvent();
 
         verify(producerEvent).send(isA(Result.class));
+    }
+
+    // ------------------------------------------------------------------ getPollResult()
+
+    @Test
+    void when_get_poll_result_returns_approved() {
+        Poll poll = buildPoll();
+        Session session = buildExpiredSession();
+        session.setPoll(poll);
+        poll.setSession(session);
+
+        Vote voteYes1 = buildVote(buildAssociate(), session);
+        voteYes1.setVoteType(VoteType.YES);
+        Vote voteYes2 = buildVote(buildAssociate(), session);
+        voteYes2.setVoteType(VoteType.YES);
+        Vote voteNo = buildVote(buildAssociate(), session);
+        voteNo.setVoteType(VoteType.NO);
+
+        session.setVotes(List.of(voteYes1, voteYes2, voteNo));
+
+        when(pollRepository.findById(poll.getId())).thenReturn(Optional.of(poll));
+
+        PollResultResponse response = service.getPollResult(poll.getId().toString());
+
+        assertNotNull(response);
+        assertEquals("APPROVED", response.getResult());
+        assertEquals(3, response.getTotalVotes());
+        assertEquals(2, response.getYesVotes());
+        assertEquals(1, response.getNoVotes());
+        assertEquals("CLOSED", response.getSessionStatus());
+        assertFalse(response.getPartial());
+    }
+
+    @Test
+    void when_get_poll_result_returns_rejected() {
+        Poll poll = buildPoll();
+        Session session = buildExpiredSession();
+        session.setPoll(poll);
+        poll.setSession(session);
+
+        Vote voteNo = buildVote(buildAssociate(), session);
+        voteNo.setVoteType(VoteType.NO);
+
+        session.setVotes(List.of(voteNo));
+
+        when(pollRepository.findById(poll.getId())).thenReturn(Optional.of(poll));
+
+        PollResultResponse response = service.getPollResult(poll.getId().toString());
+
+        assertNotNull(response);
+        assertEquals("REJECTED", response.getResult());
+        assertEquals(1, response.getTotalVotes());
+        assertEquals(0, response.getYesVotes());
+        assertEquals(1, response.getNoVotes());
+        assertEquals("CLOSED", response.getSessionStatus());
+        assertFalse(response.getPartial());
+    }
+
+    @Test
+    void when_get_poll_result_returns_tie() {
+        Poll poll = buildPoll();
+        Session session = buildExpiredSession();
+        session.setPoll(poll);
+        poll.setSession(session);
+
+        Vote voteYes = buildVote(buildAssociate(), session);
+        voteYes.setVoteType(VoteType.YES);
+        Vote voteNo = buildVote(buildAssociate(), session);
+        voteNo.setVoteType(VoteType.NO);
+
+        session.setVotes(List.of(voteYes, voteNo));
+
+        when(pollRepository.findById(poll.getId())).thenReturn(Optional.of(poll));
+
+        PollResultResponse response = service.getPollResult(poll.getId().toString());
+
+        assertNotNull(response);
+        assertEquals("TIE", response.getResult());
+    }
+
+    @Test
+    void when_get_poll_result_session_open_returns_partial() {
+        Poll poll = buildPoll();
+        Session session = buildOpenSession();
+        session.setPoll(poll);
+        poll.setSession(session);
+
+        Vote voteYes = buildVote(buildAssociate(), session);
+        voteYes.setVoteType(VoteType.YES);
+
+        session.setVotes(List.of(voteYes));
+
+        when(pollRepository.findById(poll.getId())).thenReturn(Optional.of(poll));
+
+        PollResultResponse response = service.getPollResult(poll.getId().toString());
+
+        assertNotNull(response);
+        assertNull(response.getResult());
+        assertEquals("OPEN", response.getSessionStatus());
+        assertTrue(response.getPartial());
     }
 
 }
